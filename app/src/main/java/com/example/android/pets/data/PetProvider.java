@@ -9,9 +9,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.util.Log;
 
-import static com.example.android.pets.data.PetContracts.PetEntry.CONTENT_AUTHORITY;
-import static com.example.android.pets.data.PetContracts.PetEntry.PATH_PETS;
-
 /**
  * {@link ContentProvider} for Pets app.
  */
@@ -20,7 +17,8 @@ public class PetProvider extends ContentProvider {
     /** Tag for the log messages */
     public static final String LOG_TAG = PetProvider.class.getSimpleName();
 
-    public PetDbHelper mDbPet;
+    /** Database helper object */
+    private PetDbHelper mDbPet;
 
     /** URI matcher code for the content URI for the pets table */
     private static final int PETS = 100;
@@ -42,8 +40,8 @@ public class PetProvider extends ContentProvider {
         // when a match is found.
 
         // TODO: Add 2 content URIs to URI matcher
-        sUriMatcher.addURI(CONTENT_AUTHORITY,PATH_PETS,PETS);
-        sUriMatcher.addURI(CONTENT_AUTHORITY,PATH_PETS + "/#",PET_ID);
+        sUriMatcher.addURI(PetContracts.PetEntry.CONTENT_AUTHORITY,PetContracts.PetEntry.PATH_PETS,PETS);
+        sUriMatcher.addURI(PetContracts.PetEntry.CONTENT_AUTHORITY,PetContracts.PetEntry.PATH_PETS + "/#",PET_ID);
     }
     /**
      * Initialize the provider and the database helper object.
@@ -67,7 +65,7 @@ public class PetProvider extends ContentProvider {
         SQLiteDatabase database = mDbPet.getReadableDatabase();
 
         // This cursor will hold the result of the query
-        Cursor cursor = null;
+        Cursor cursor;
 
         // Figure out if the URI matcher can match the URI to a specific code
         int match = sUriMatcher.match(uri);
@@ -193,6 +191,63 @@ public class PetProvider extends ContentProvider {
      * Return the number of rows that were successfully updated.
      */
     private int updatePet(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+        // If the {@link PetEntry#COLUMN_PET_NAME} key is present,
+        // check that the name value is not null.
+        if (values.containsKey(PetContracts.PetEntry.COLUMN_PET_NAME)) {
+            String name = values.getAsString(PetContracts.PetEntry.COLUMN_PET_NAME);
+            if (name == null) {
+                throw new IllegalArgumentException("Pet requires a name");
+            }
+        }
+
+        // If the {@link PetEntry#COLUMN_PET_GENDER} key is present,
+        // check that the gender value is valid.
+        if (values.containsKey(PetContracts.PetEntry.COLUMN_PET_GENDER)) {
+            Integer gender = values.getAsInteger(PetContracts.PetEntry.COLUMN_PET_GENDER);
+            if (gender == null || !PetContracts.PetEntry.isValidGender(gender)) {
+                throw new IllegalArgumentException("Pet requires valid gender");
+            }
+        }
+
+        // If the {@link PetEntry#COLUMN_PET_WEIGHT} key is present,
+        // check that the weight value is valid.
+        if (values.containsKey(PetContracts.PetEntry.COLUMN_PET_WEIGHT)) {
+            // Check that the weight is greater than or equal to 0 kg
+            Integer weight = values.getAsInteger(PetContracts.PetEntry.COLUMN_PET_WEIGHT);
+            if (weight != null && weight < 0) {
+                throw new IllegalArgumentException("Pet requires valid weight");
+            }
+        }
+
+        // No need to check the breed, any value is valid (including null).
+
+        // If there are no values to update, then don't try to update the database
+        if (values.size() == 0) {
+            return 0;
+        }
+
+        // Otherwise, get writeable database to update the data
+        SQLiteDatabase database = mDbPet.getWritableDatabase();
+
+        // Perform the update on the database and get the number of rows affected
+        int rowsUpdated = database.update(PetContracts.PetEntry.TABLE_NAME, values, selection, selectionArgs);
+
+        // If 1 or more rows were updated, then notify all listeners that the data at the
+        // given URI has changed
+        if (rowsUpdated != 0) {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+
+        // Return the number of rows updated
+        return rowsUpdated;
+    }
+
+    /**
+     * Update pets in the database with the given content values. Apply the changes to the rows
+     * specified in the selection and selection arguments (which could be 0 or 1 or more pets).
+     * Return the number of rows that were successfully updated.
+
+    private int updatePet(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
 
         // TODO: Update the selected pets in the pets database table with the given ContentValues
         // If the {@link PetEntry#COLUMN_PET_NAME} key is present,
@@ -239,6 +294,7 @@ public class PetProvider extends ContentProvider {
         // Returns the number of database rows affected by the update statement
         return database.update(PetContracts.PetEntry.TABLE_NAME, values, selection, selectionArgs);
     }
+     */
 
     /**
      * Delete the data at the given selection and selection arguments.

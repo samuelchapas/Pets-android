@@ -106,7 +106,12 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             // (It doesn't make sense to delete a pet that hasn't been created yet.)
             invalidateOptionsMenu();
         } else{
+            // Otherwise this is an existing pet, so change app bar to say "Edit Pet"
             setTitle(getString(R.string.editor_activity_title_edit_pet));
+
+            // Initialize a loader to read the pet data from the database
+            // and display the current values in the editor
+            getSupportLoaderManager().initLoader(EXISTING_PET_LOADER, null, this);
         }
 
         // Find all relevant views that we will need to read user input from
@@ -125,7 +130,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
 
         setupSpinner();
-        getSupportLoaderManager().initLoader(EXISTING_PET_LOADER, null, this);
+
     }
 
     /**
